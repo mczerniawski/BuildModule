@@ -18,4 +18,13 @@ Description = 'Some Description of your SampleModule'
 Invoke the function with splatting
 New-ArcModule @moduleParams
 
+
+Need to update next:
+In file SampleModule.psd1
+LicenseUri <-- pointing to your github LICENSE file
+PojectUri <-- pointing to your github URI
+
+In file appveyor.yml
+NuGetApiKey:
+    secure: <-- change to your secure key from AppVeyor
 ```
