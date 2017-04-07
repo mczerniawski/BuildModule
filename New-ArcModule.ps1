@@ -109,8 +109,12 @@
         Invoke-WebRequest -Uri "https://raw.githubusercontent.com/mczerniawski/BuildModule/master/ModuleName.Format.ps1xml" -OutFile "$newPath\$Module\$Module.Format.ps1xml"
         Write-Verbose -Message "[$((get-date).TimeOfDay.ToString()) PROCESS ] Downloaded file ModuleName.Format.ps1xml to {$newPath\$Module\$Module.Format.ps1xml}."
         
+        Invoke-WebRequest -Uri "https://raw.githubusercontent.com/mczerniawski/BuildModule/master/ModuleName.psm1" -OutFile "$newPath\$Module\$Module.psm1"
+        Write-Verbose -Message "[$((get-date).TimeOfDay.ToString()) PROCESS ] Downloaded file ModuleName.psm1 to {$newPath\$Module\$Module.psm1}."
+
         Write-Verbose -Message "[$((get-date).TimeOfDay.ToString()) PROCESS ] Replacing ModuleModule in psd1 file"
         (Get-Content -LiteralPath $params.Path -ReadCount 0 -Raw).Replace("RootModule = '$($params.RootModule)'","RootModule = '$Module.psm1'") | Set-Content -LiteralPath $params.Path
+       
       }
       catch {
         Write-Error $problems 
