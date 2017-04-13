@@ -17,6 +17,20 @@
       New-ArcModule @moduleParams
 
       Create a hashtable of parameters and pass create new Module with it.
+
+      .EXAMPLE
+      $moduleParams  =@{
+        ModulePath = 'C:\Repo\GIT'
+        ModuleName = 'SomeModule'
+        Author = 'Mateusz Czerniawski'
+        Description = 'Module for basic Management'
+        ModuleVersion = '1.0.1'
+        LicenseUri = 'https://github.com/mczerniawski/SomeModule/blob/master/LICENSE'
+        ProjectUri = 'https://github.com/mczerniawski/SomeModule/'
+      }
+      New-ArcModule @moduleParams
+
+      Create a hashtable of parameters and pass create new Module with it. Will accept additional parameters like ModuleVersion, LicenseUri or ProjectUri. 
       
   #>
   [CmdletBinding()]
@@ -26,7 +40,7 @@
     [Parameter(Mandatory=$true, Position=0,
         ValueFromPipeline = $true,  
     ValueFromPipelineByPropertyName = $true)]
-    [ValidateScript({Test-Path $_ -PathType 'Container'})]
+    [ValidateScript({Test-Path -Path $_ -PathType 'Container'})]
     [System.String]
     $ModulePath,
     
@@ -46,7 +60,26 @@
         ValueFromPipeline = $true,  
     ValueFromPipelineByPropertyName = $true)]
     [System.String]
-    $Description 
+    $Description,
+    
+    [Parameter(Mandatory=$false, Position=4,
+        ValueFromPipeline = $true,  
+    ValueFromPipelineByPropertyName = $true)]
+    [System.String]
+    $LicenseUri,
+    
+    [Parameter(Mandatory=$false, Position=5,
+        ValueFromPipeline = $true,  
+    ValueFromPipelineByPropertyName = $true)]
+    [System.String]
+    $ProjectUri,
+    
+    [Parameter(Mandatory=$false, Position=6,
+        ValueFromPipeline = $true,  
+    ValueFromPipelineByPropertyName = $true)]
+    $ModuleVersion
+    
+    
   )
   
   Begin {
@@ -59,7 +92,6 @@
     Write-Verbose -Message "Runtime = $(Get-Date)" 
 
     Write-Verbose -Message "[$((get-date).TimeOfDay.ToString()) BEGIN   ] Starting: $($MyInvocation.Mycommand)"
-    
   }
   Process{
     foreach ($Module in $ModuleName) {
@@ -87,6 +119,15 @@
         Author ="$Author" 
         FormatsToProcess= "$Module.Format.ps1xml"
       }
+      if($PSBoundParameters.ContainsKey('LicenseUri')){
+        $params.LicenseUri = $LicenseUri
+      }
+      if($PSBoundParameters.ContainsKey('ProjectUri')){
+        $params.ProjectUri = $ProjectUri
+      }
+      if($PSBoundParameters.ContainsKey('ModuleVersion')){
+        $params.ModuleVersion = $ModuleVersion
+      }
       try { 
         
         New-ModuleManifest @params -ErrorAction Stop -ErrorVariable problems
@@ -94,30 +135,32 @@
   
         Write-Verbose -Message "[$((get-date).TimeOfDay.ToString()) PROCESS ] Downloading files from mczerniawski github repo."
 
-        Invoke-WebRequest -Uri "https://raw.githubusercontent.com/mczerniawski/BuildModule/master/appveyor.yml" -OutFile "$newPath\appveyor.yml" 
+        Invoke-WebRequest -Uri "https://raw.githubusercontent.com/mczerniawski/BuildModule/master/appveyor.yml" -OutFile "$newPath\appveyor.yml" -ErrorVariable problems
         Write-Verbose -Message "[$((get-date).TimeOfDay.ToString()) PROCESS ] Downloaded file appveyor.yml to {$newPath\appveyor.yml}."
       
-        Invoke-WebRequest -Uri "https://raw.githubusercontent.com/mczerniawski/BuildModule/master/build.ps1" -OutFile "$newPath\build.ps1"
+        Invoke-WebRequest -Uri "https://raw.githubusercontent.com/mczerniawski/BuildModule/master/build.ps1" -OutFile "$newPath\build.ps1" -ErrorVariable problems
         Write-Verbose -Message "[$((get-date).TimeOfDay.ToString()) PROCESS ] Downloaded file build.ps1 to {$newPath\build.ps1}."
       
-        Invoke-WebRequest -Uri "https://raw.githubusercontent.com/mczerniawski/BuildModule/master/deploy.psdeploy.ps1" -OutFile "$newPath\deploy.psdeploy.ps1"
+        Invoke-WebRequest -Uri "https://raw.githubusercontent.com/mczerniawski/BuildModule/master/deploy.psdeploy.ps1" -OutFile "$newPath\deploy.psdeploy.ps1" -ErrorVariable problems
         Write-Verbose -Message "[$((get-date).TimeOfDay.ToString()) PROCESS ] Downloaded file deploy.psdeploy.ps1 to {$newPath\deploy.psdeploy.ps1}."
       
-        Invoke-WebRequest -Uri "https://raw.githubusercontent.com/mczerniawski/BuildModule/master/psake.ps1" -OutFile "$newPath\psake.ps1"
+        Invoke-WebRequest -Uri "https://raw.githubusercontent.com/mczerniawski/BuildModule/master/psake.ps1" -OutFile "$newPath\psake.ps1" -ErrorVariable problems
         Write-Verbose -Message "[$((get-date).TimeOfDay.ToString()) PROCESS ] Downloaded file psake.ps1 to {$newPath\psake.ps1}."
       
-        Invoke-WebRequest -Uri "https://raw.githubusercontent.com/mczerniawski/BuildModule/master/ModuleName.Format.ps1xml" -OutFile "$newPath\$Module\$Module.Format.ps1xml"
+        Invoke-WebRequest -Uri "https://raw.githubusercontent.com/mczerniawski/BuildModule/master/ModuleName.Format.ps1xml" -OutFile "$newPath\$Module\$Module.Format.ps1xml" -ErrorVariable problems
         Write-Verbose -Message "[$((get-date).TimeOfDay.ToString()) PROCESS ] Downloaded file ModuleName.Format.ps1xml to {$newPath\$Module\$Module.Format.ps1xml}."
         
-        Invoke-WebRequest -Uri "https://raw.githubusercontent.com/mczerniawski/BuildModule/master/ModuleName.psm1" -OutFile "$newPath\$Module\$Module.psm1"
+        Invoke-WebRequest -Uri "https://raw.githubusercontent.com/mczerniawski/BuildModule/master/ModuleName.psm1" -OutFile "$newPath\$Module\$Module.psm1" -ErrorVariable problems
         Write-Verbose -Message "[$((get-date).TimeOfDay.ToString()) PROCESS ] Downloaded file ModuleName.psm1 to {$newPath\$Module\$Module.psm1}."
 
-        Write-Verbose -Message "[$((get-date).TimeOfDay.ToString()) PROCESS ] Replacing ModuleModule in psd1 file"
-        (Get-Content -LiteralPath $params.Path -ReadCount 0 -Raw).Replace("RootModule = '$($params.RootModule)'","RootModule = '$Module.psm1'") | Set-Content -LiteralPath $params.Path
+        Write-Verbose -Message "[$((get-date).TimeOfDay.ToString()) PROCESS ] Replacing RootModule in psd1 file"
+        (Get-Content -LiteralPath $params.Path -ReadCount 0 -Raw).Replace("RootModule = '$($params.RootModule)'","RootModule = '$Module.psm1'") | Set-Content -LiteralPath $params.Path -Force -ErrorVariable problems
        
       }
       catch {
-        Write-Error $problems 
+        foreach ($p in $problems) { 
+          Write-Error -Message $p
+        } 
       }
     }
   }
